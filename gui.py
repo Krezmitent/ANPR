@@ -148,7 +148,7 @@ class PipelineWorker(QThread):
             # ── Vehicle detection ──────────────────────────────────────────
             results = vehicle_model(
                 frame, conf=config.VEHICLE_CONF, verbose=False,
-                device=config.DEVICE
+                device=config.DEVICE, half=True
             )[0]
 
             dets = []
@@ -171,7 +171,7 @@ class PipelineWorker(QThread):
                     crop = frame[y1:y2, x1:x2]
                     if crop.size > 0:
                         pr = plate_model(crop, conf=config.PLATE_CONF, verbose=False,
-                                         device=config.DEVICE)[0]
+                                         device=config.DEVICE, half=True)[0]
                         for pb in pr.boxes:
                             px1, py1, px2, py2 = map(int, pb.xyxy[0])
                             pc = crop[py1:py2, px1:px2]
