@@ -1,0 +1,47 @@
+# requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+# Install all dependencies with:
+#   pip install -r requirements.txt
+#
+# After installing PyTorch, verify GPU works with:
+#   python -c "import torch; print(torch.cuda.is_available())"
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Deep learning & detection ─────────────────────────────────────────────────
+# PyTorch: install the CUDA version manually FIRST before running this file.
+# Do NOT install torch via this requirements.txt — the index URL won't work here.
+# Instead run this command once in your venv:
+#
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+#
+# Then run: pip install -r requirements.txt
+# (torch/torchvision/torchaudio are listed below as comments so pip doesn't
+#  overwrite your CUDA build with the CPU-only version from PyPI)
+#
+# torch                 # installed manually — see above
+# torchvision           # installed manually — see above
+# torchaudio            # installed manually — see above
+
+ultralytics>=8.2.0          # YOLOv8 / YOLOv12 — vehicle + plate detection
+
+# ── OCR ───────────────────────────────────────────────────────────────────────
+fast-plate-ocr              # License-plate-specific OCR (European model)
+onnxruntime                 # ONNX Runtime CPU backend for fast-plate-ocr
+                            # (onnxruntime-gpu has DLL issues on CUDA 13.x)
+
+# ── Computer vision & image processing ───────────────────────────────────────
+opencv-python>=4.9.0        # Video reading, frame processing, drawing
+numpy>=2.0.0                # Required by opencv 4.13+
+
+# ── Object tracking ───────────────────────────────────────────────────────────
+filterpy>=1.4.5             # Kalman filtering — required by SORT tracker
+scipy>=1.11.0               # Also required by SORT
+
+# ── Data handling ─────────────────────────────────────────────────────────────
+pandas>=2.1.0               # CSV output
+
+# ── GUI ───────────────────────────────────────────────────────────────────────
+PyQt6>=6.6.0                # Modern desktop GUI framework
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+Pillow>=10.0.0              # Image I/O used internally by several libraries

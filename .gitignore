@@ -1,0 +1,36 @@
+# Virtual environment — never commit this, it's machine-specific and huge
+.venv/
+venv/
+
+# Model weights — too large for GitHub (100MB limit per file)
+models/*.pt
+models/*.onnx
+
+# Output data — generated at runtime, not source code
+output/
+data/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# fast-plate-ocr cached model downloads
+*.onnx
+
+# Windows system files
+Thumbs.db
+desktop.ini
+
+# IDE folders
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
