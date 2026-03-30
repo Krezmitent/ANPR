@@ -26,7 +26,7 @@ print(f"[Config] Using device: {DEVICE}")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 VIDEO_PATH         = os.path.join(BASE_DIR, "data",   "test_video.mp4")
-VEHICLE_MODEL_PATH = os.path.join(BASE_DIR, "models", "yolov8n.pt")
+VEHICLE_MODEL_PATH = os.path.join(BASE_DIR, "models", "yolov11n.pt")
 PLATE_MODEL_PATH   = os.path.join(BASE_DIR, "models", "license_plate_detector.pt")
 OUTPUT_DIR         = os.path.join(BASE_DIR, "output")
 OUTPUT_CSV         = os.path.join(OUTPUT_DIR, "detections.csv")
