@@ -1,92 +1,122 @@
 # config.py
 # ─────────────────────────────────────────────────────────────────────────────
 # Central configuration file for the ANPR project.
-# ALL tunable values live here. When you switch to a different video or camera,
-# this is the ONLY file you need to edit. Nothing in src/ or main.py should
-# contain hardcoded numbers — they should always import from here.
+#
+# Speed measurement is now calibrated with 4 road points instead of two
+# horizontal lines.  Run  python find_calibration.py  (or click CALIBRATE in
+# the GUI) to set ROI_POINTS, ROI_REAL_WIDTH_M, and ROI_REAL_HEIGHT_M for
+# your specific camera and road.  The calibration tool saves a
+# calibration.json file in the project root; config.py loads it automatically.
+#
+# If no calibration.json exists the DEFAULT values below are used.  They are
+# intentionally set to obviously wrong numbers so you know you need to
+# calibrate — do not rely on them for real speed readings.
 # ─────────────────────────────────────────────────────────────────────────────
 
 import os
+import json
 import torch
 
-# Automatically use GPU if available, fall back to CPU if not.
-# This means your code will work on both your laptop and any other machine.
+# Auto-select GPU / CPU
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"[Config] Using device: {DEVICE}")
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-# Base directory = wherever this config.py file lives
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Input: path to your test video. Use 0 for a webcam feed.
-VIDEO_PATH = os.path.join(BASE_DIR, "data", "test_video.mp4") 
-
-# Model weights
+VIDEO_PATH         = os.path.join(BASE_DIR, "data",   "test_video.mp4")
 VEHICLE_MODEL_PATH = os.path.join(BASE_DIR, "models", "yolov8n.pt")
 PLATE_MODEL_PATH   = os.path.join(BASE_DIR, "models", "license_plate_detector.pt")
-
-# Output files
 OUTPUT_DIR         = os.path.join(BASE_DIR, "output")
 OUTPUT_CSV         = os.path.join(OUTPUT_DIR, "detections.csv")
 OUTPUT_VIDEO       = os.path.join(OUTPUT_DIR, "annotated_output.avi")
 DEBUG_FRAMES_DIR   = os.path.join(OUTPUT_DIR, "debug_frames")
+CALIBRATION_FILE   = os.path.join(BASE_DIR, "calibration.json")
 
-# ── Speed Measurement Calibration ────────────────────────────────────────────
-# These two Y pixel coordinates define horizontal lines drawn across the frame.
-# A vehicle is timed between these two lines to compute its speed.
+# ── ROI Calibration ───────────────────────────────────────────────────────────
 #
-# HOW TO SET THESE VALUES:
-#   1. Run main.py once and pause it (press spacebar, or just note a frame).
-#   2. Look at the frame and pick two Y positions that a car will definitely
-#      cross — ideally 1/3 and 2/3 down the frame.
-#   3. Measure the REAL-WORLD distance between those two positions in meters.
-#      You can do this by pausing footage and using a known object for scale
-#      (e.g., a standard car is ~4.5m long, a lane is ~3.5m wide).
+# ROI_POINTS is a list of four [x, y] pixel coordinates (in 1080p space) that
+# mark the four corners of a rectangular section of road.  Order:
+#
+#   [0] top-left     — far-left  corner (upper part of frame)
+#   [1] top-right    — far-right corner (upper part of frame)
+#   [2] bottom-right — near-right corner (lower part of frame)
+#   [3] bottom-left  — near-left  corner (lower part of frame)
+#
+# ROI_REAL_WIDTH_M  = real-world width  of that rectangle (metres, left→right)
+# ROI_REAL_HEIGHT_M = real-world height of that rectangle (metres, far→near)
+#
+# These defaults are placeholders — run the calibration tool to set correct values.
+#
+# ── Loading priority ──────────────────────────────────────────────────────────
+#   1. calibration.json  (written by find_calibration.py or GUI calibration)
+#   2. hardcoded defaults below
 
-LINE_1_Y = 860          # Y coordinate (pixels) of the first reference line
-LINE_2_Y = 1035          # Y coordinate (pixels) of the second reference line
-REAL_DISTANCE_METERS = 27.0   # Real-world distance between the two lines (meters)
+_DEFAULT_ROI_POINTS = [
+    [400,  350],   # 0  top-left
+    [1520, 350],   # 1  top-right
+    [1800, 750],   # 2  bottom-right
+    [120,  750],   # 3  bottom-left
+]
+_DEFAULT_REAL_WIDTH_M  = 7.0
+_DEFAULT_REAL_HEIGHT_M = 20.0
+
+if os.path.exists(CALIBRATION_FILE):
+    try:
+        with open(CALIBRATION_FILE, 'r') as _f:
+            _cal = json.load(_f)
+        ROI_POINTS         = _cal['roi_points']
+        ROI_REAL_WIDTH_M   = float(_cal['real_width_m'])
+        ROI_REAL_HEIGHT_M  = float(_cal['real_height_m'])
+        print(f"[Config] Loaded calibration from {CALIBRATION_FILE}")
+        print(f"         ROI: {ROI_POINTS}")
+        print(f"         {ROI_REAL_WIDTH_M}m wide × {ROI_REAL_HEIGHT_M}m deep")
+    except Exception as _e:
+        print(f"[Config] WARNING: could not read calibration.json ({_e}). "
+              "Using defaults — run find_calibration.py to calibrate.")
+        ROI_POINTS        = _DEFAULT_ROI_POINTS
+        ROI_REAL_WIDTH_M  = _DEFAULT_REAL_WIDTH_M
+        ROI_REAL_HEIGHT_M = _DEFAULT_REAL_HEIGHT_M
+else:
+    print("[Config] No calibration.json found — using default ROI placeholders.")
+    print("         Run  python find_calibration.py  or click CALIBRATE in the GUI.")
+    ROI_POINTS        = _DEFAULT_ROI_POINTS
+    ROI_REAL_WIDTH_M  = _DEFAULT_REAL_WIDTH_M
+    ROI_REAL_HEIGHT_M = _DEFAULT_REAL_HEIGHT_M
 
 # ── Detection Thresholds ──────────────────────────────────────────────────────
-# Confidence scores are between 0 and 1. Higher = more strict = fewer detections.
-# Lower = more lenient = more false positives.
-# 0.5 for vehicles and 0.4 for plates is a good starting point.
 
 VEHICLE_CONF = 0.5
 PLATE_CONF   = 0.4
 
-# COCO dataset class IDs for vehicles. YOLOv8n is trained on COCO by default.
-# 2=car, 3=motorcycle, 5=bus, 7=truck
 VEHICLE_CLASSES = {2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
 
 # ── SORT Tracker Parameters ───────────────────────────────────────────────────
-# max_age:       How many frames a track survives without a matching detection.
-#                Increase if vehicles disappear behind obstructions briefly.
-# min_hits:      How many frames a detection must appear before it's confirmed
-#                as a real track (filters out one-frame ghost detections).
-# iou_threshold: How much two bounding boxes must overlap to be considered
-#                the same object between frames. IOU = Intersection Over Union.
 
 SORT_MAX_AGE       = 30
 SORT_MIN_HITS      = 3
 SORT_IOU_THRESHOLD = 0.3
 
-# How many pixels either side of a reference line counts as a crossing.
-# With frame skipping active, cars jump more pixels between frames, so
-# this needs to be wider than the default 8px to avoid missed crossings.
+# ── Line Crossing Tolerance ───────────────────────────────────────────────────
+# Perpendicular pixel distance from the vehicle's ground point to a trigger
+# line that counts as a crossing.  Larger values help when FRAME_SKIP is high
+# (vehicles jump more pixels per frame).
+
 LINE_TOLERANCE = 30
 
-# Process every Nth frame to improve speed. 2 = process frames 2, 4, 6...
-# Set to 1 to process every frame (only if your GPU can keep up in real time).
+# ── Frame Skipping ────────────────────────────────────────────────────────────
+
 FRAME_SKIP = 2
 
-# ── Display Settings ──────────────────────────────────────────────────────────
-SHOW_VIDEO   = True    # Set False to run headlessly (e.g. on a server)
-SAVE_VIDEO   = False   # Set True to write annotated video to OUTPUT_VIDEO
+# ── Display ───────────────────────────────────────────────────────────────────
 
-# Colours used for drawing (BGR format — OpenCV uses Blue-Green-Red, not RGB)
-COLOR_VEHICLE  = (255, 100, 0)   # Orange for vehicle bounding boxes
-COLOR_PLATE    = (0, 255, 0)     # Green for plate bounding boxes and text
-COLOR_LINE     = (0, 0, 255)     # Red for speed measurement reference lines
-COLOR_SPEED    = (0, 255, 255)   # Yellow for speed text overlay
+SHOW_VIDEO = True
+SAVE_VIDEO = False
+
+COLOR_VEHICLE = (255, 100,  0)   # Orange  — vehicle boxes
+COLOR_PLATE   = (  0, 255,  0)   # Green   — plate boxes & text
+COLOR_ROI     = (  0,   0, 255)  # Red     — ROI polygon border
+COLOR_LINE_A  = (  0, 180, 255)  # Amber   — Line A (far)
+COLOR_LINE_B  = (  0, 180, 255)  # Amber   — Line B (near)
+COLOR_SPEED   = (  0, 255, 255)  # Yellow  — speed text

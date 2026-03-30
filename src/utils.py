@@ -18,8 +18,8 @@ import cv2
 import pandas as pd
 import os
 from config import (
-    COLOR_VEHICLE, COLOR_PLATE, COLOR_LINE, COLOR_SPEED,
-    LINE_1_Y, LINE_2_Y, OUTPUT_CSV
+    COLOR_VEHICLE, COLOR_PLATE, COLOR_ROI, COLOR_SPEED,
+    OUTPUT_CSV
 )
 
 
@@ -89,13 +89,13 @@ def draw_reference_lines(frame):
     """
     h, w = frame.shape[:2]
 
-    cv2.line(frame, (0, LINE_1_Y), (w, LINE_1_Y), COLOR_LINE, 2)
+    cv2.line(frame, (0, LINE_1_Y), (w, LINE_1_Y), COLOR_ROI, 2)
     cv2.putText(frame, "Line 1", (10, LINE_1_Y - 6),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLOR_LINE, 1)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLOR_ROI, 1)
 
-    cv2.line(frame, (0, LINE_2_Y), (w, LINE_2_Y), COLOR_LINE, 2)
+    cv2.line(frame, (0, LINE_2_Y), (w, LINE_2_Y), COLOR_ROI, 2)
     cv2.putText(frame, "Line 2", (10, LINE_2_Y - 6),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLOR_LINE, 1)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLOR_ROI, 1)
 
 
 def draw_frame_info(frame, frame_num: int, active_count: int):
